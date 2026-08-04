@@ -1,0 +1,28 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreWcf.ConfigTransformer", "src\CoreWcf.ConfigTransformer\CoreWcf.ConfigTransformer.csproj", "{00000000-0000-0000-0000-000000000000}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreWcf.ConfigTransformer.Tests", "tests\CoreWcf.ConfigTransformer.Tests\CoreWcf.ConfigTransformer.Tests.csproj", "{7AD45468-AD22-4CB9-B451-B511D5A47698}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreWcf.ConfigTransformer.SampleHost", "samples\CoreWcf.ConfigTransformer.SampleHost\CoreWcf.ConfigTransformer.SampleHost.csproj", "{15F2B8D4-0990-4F67-84AA-E6ED7348616E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7AD45468-AD22-4CB9-B451-B511D5A47698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AD45468-AD22-4CB9-B451-B511D5A47698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AD45468-AD22-4CB9-B451-B511D5A47698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AD45468-AD22-4CB9-B451-B511D5A47698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15F2B8D4-0990-4F67-84AA-E6ED7348616E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15F2B8D4-0990-4F67-84AA-E6ED7348616E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15F2B8D4-0990-4F67-84AA-E6ED7348616E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15F2B8D4-0990-4F67-84AA-E6ED7348616E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00000000-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00000000-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal
