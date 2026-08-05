@@ -155,11 +155,15 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
                 generatedConfigurationPath,
                 new LegacyWcfServiceModelTransformOptions());
 
-            var generatedServiceModel = XElement.Load(generatedConfigurationPath);
+            var generatedConfiguration = XDocument.Load(generatedConfigurationPath);
+            var generatedServiceModel = generatedConfiguration.Root?.Element("system.serviceModel");
 
             Assert.True(File.Exists(generatedConfigurationPath));
-            Assert.Equal("system.serviceModel", generatedServiceModel.Name.LocalName);
-            Assert.Equal(result.ServiceModel.ToString(), File.ReadAllText(generatedConfigurationPath));
+            Assert.Equal("configuration", generatedConfiguration.Root?.Name.LocalName);
+            Assert.NotNull(generatedServiceModel);
+            Assert.Equal(
+                NormalizeXml(result.ServiceModel),
+                NormalizeXml(generatedServiceModel));
             Assert.Null(generatedServiceModel.Element("services")?.Element("service")?.Element("host"));
         }
         finally
@@ -187,5 +191,11 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
     {
         var transformer = new LegacyWcfServiceModelToCoreWcfTransformer();
         return transformer.Transform(XElement.Parse(serviceModelXml));
+    }
+
+    private static string NormalizeXml(XElement element)
+    {
+        return XElement.Parse(element.ToString(SaveOptions.DisableFormatting))
+            .ToString(SaveOptions.DisableFormatting);
     }
 }
