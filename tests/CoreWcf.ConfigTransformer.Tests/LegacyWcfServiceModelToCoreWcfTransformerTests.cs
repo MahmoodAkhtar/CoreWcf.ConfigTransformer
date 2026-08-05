@@ -72,6 +72,9 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         Assert.NotNull(result.ServiceModel.Element("bindings"));
         Assert.NotNull(result.ServiceModel.Element("services"));
         Assert.Null(result.ServiceModel.Element("services")?.Element("service")?.Element("host"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedSectionRemoved);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingElementRemoved);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.HostElementRemoved);
     }
 
     [Fact]
@@ -84,6 +87,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         Assert.Equal(
             "http://localhost:8080/relative",
             (string)Assert.Single(result.ServiceModel.Element("services")?.Element("service")?.Elements("endpoint") ?? Enumerable.Empty<XElement>()).Attribute("address"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointAddressResolved);
     }
 
     [Fact]
@@ -97,6 +101,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
             result.ServiceModel.Element("services")?.Element("service")?.Elements("endpoint") ?? Enumerable.Empty<XElement>(),
             endpoint => string.Equals((string)endpoint.Attribute("binding"), "netMsmqBinding", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBinding);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingRemoved);
     }
 
     [Fact]
@@ -119,6 +124,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         var serviceNames = result.ServiceModel.Element("services")?.Elements("service").Select(service => (string)service.Attribute("name"));
 
         Assert.Equal(new[] { "Contracts.IFoo", "Contracts.IBar" }, serviceNames);
+        Assert.Equal(2, result.Diagnostics.Count(diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.ServiceNameGenerated));
     }
 
     [Fact]
@@ -139,6 +145,8 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         var serviceNames = result.ServiceModel.Element("services")?.Elements("service").Select(service => (string)service.Attribute("name"));
 
         Assert.Equal(new[] { "Services.Duplicate", "Services.Duplicate_2", "Service3", "Service4" }, serviceNames);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.ServiceNameChanged);
+        Assert.Equal(2, result.Diagnostics.Count(diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.ServiceNameGenerated));
     }
 
     [Fact]
@@ -162,6 +170,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
             .Select(endpoint => (string)endpoint.Attribute("name"));
 
         Assert.Equal(new[] { "basicHttpBinding_Contracts.IFoo", "netTcpBinding_Contracts.IFoo" }, endpointNames);
+        Assert.Equal(2, result.Diagnostics.Count(diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointNameGenerated));
     }
 
     [Fact]
@@ -187,6 +196,37 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
             .Select(endpoint => (string)endpoint.Attribute("name"));
 
         Assert.Equal(new[] { "basicHttpBinding_Contracts.IFoo", "basicHttpBinding_Contracts.IFoo_2", "Existing", "Existing_2" }, endpointNames);
+        Assert.Equal(2, result.Diagnostics.Count(diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointNameGenerated));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointNameChanged);
+    }
+
+    [Fact]
+    public void Transform_DiagnosticsIncludeFormattedTransformationContext()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <host>
+                    <baseAddresses>
+                      <add baseAddress="http://localhost:8080/" />
+                    </baseAddresses>
+                  </host>
+                  <endpoint binding="basicHttpBinding" contract="Contracts.IFoo" address="relative" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointAddressResolved &&
+                diagnostic.Message.Contains("Services.Foo", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("basicHttpBinding_Contracts.IFoo", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("relative", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("http://localhost:8080/relative", StringComparison.Ordinal));
     }
 
     [Fact]
