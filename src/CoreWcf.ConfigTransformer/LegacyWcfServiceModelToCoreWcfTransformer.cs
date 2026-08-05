@@ -66,7 +66,11 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         }
 
         var result = Transform(serviceModel, options);
-        File.WriteAllText(generatedConfigurationPath, result.ServiceModel.ToString());
+        var generatedConfiguration = new XDocument(
+            new XDeclaration("1.0", "utf-8", null),
+            new XElement("configuration", result.ServiceModel));
+
+        generatedConfiguration.Save(generatedConfigurationPath);
 
         return result;
     }
