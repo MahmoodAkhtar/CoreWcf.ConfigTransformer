@@ -142,6 +142,54 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
     }
 
     [Fact]
+    public void Transform_PopulatesMissingEndpointNamesFromBindingAndContract()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <endpoint binding="basicHttpBinding" contract="Contracts.IFoo" />
+                  <endpoint binding="netTcpBinding" contract="Contracts.IFoo" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        var endpointNames = result.ServiceModel.Element("services")?
+            .Element("service")?
+            .Elements("endpoint")
+            .Select(endpoint => (string)endpoint.Attribute("name"));
+
+        Assert.Equal(new[] { "basicHttpBinding_Contracts.IFoo", "netTcpBinding_Contracts.IFoo" }, endpointNames);
+    }
+
+    [Fact]
+    public void Transform_MakesEndpointNamesUnique()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <endpoint binding="basicHttpBinding" contract="Contracts.IFoo" />
+                  <endpoint binding="basicHttpBinding" contract="Contracts.IFoo" />
+                  <endpoint name="Existing" binding="netTcpBinding" contract="Contracts.IFoo" />
+                  <endpoint name="Existing" binding="netTcpBinding" contract="Contracts.IBar" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        var endpointNames = result.ServiceModel.Element("services")?
+            .Element("service")?
+            .Elements("endpoint")
+            .Select(endpoint => (string)endpoint.Attribute("name"));
+
+        Assert.Equal(new[] { "basicHttpBinding_Contracts.IFoo", "basicHttpBinding_Contracts.IFoo_2", "Existing", "Existing_2" }, endpointNames);
+    }
+
+    [Fact]
     public void Transform_FromFilePaths_WritesTransformedServiceModel()
     {
         var legacyConfigurationPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "BasicHttpOnly.config");
