@@ -1,3 +1,5 @@
+using CoreWcf.ConfigTransformer.Internal;
+
 namespace CoreWcf.ConfigTransformer;
 
 /// <summary>
@@ -8,8 +10,14 @@ public sealed class LegacyWcfServiceModelDiagnostic
     /// <summary>
     /// Initializes a new instance of the <see cref="LegacyWcfServiceModelDiagnostic"/> class.
     /// </summary>
-    public LegacyWcfServiceModelDiagnostic(LegacyWcfServiceModelDiagnosticSeverity severity, string code, string message)
+    public LegacyWcfServiceModelDiagnostic(
+        LegacyWcfServiceModelDiagnosticSeverity severity, 
+        string code, 
+        string message)
     {
+        Guard.NotNull(code, nameof(code));
+        Guard.NotNull(message, nameof(message));
+
         Code = code;
         Severity = severity;
         Message = message;

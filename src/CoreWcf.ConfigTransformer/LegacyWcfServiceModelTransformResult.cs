@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using CoreWcf.ConfigTransformer.Internal;
 
 namespace CoreWcf.ConfigTransformer;
 
@@ -7,8 +8,19 @@ namespace CoreWcf.ConfigTransformer;
 /// </summary>
 public sealed class LegacyWcfServiceModelTransformResult
 {
-    internal LegacyWcfServiceModelTransformResult(XElement serviceModel, IReadOnlyList<Uri> httpListeners, IReadOnlyList<Uri> httpsListeners, IReadOnlyList<Uri> netTcpListeners, IReadOnlyList<LegacyWcfServiceModelDiagnostic> diagnostics)
+    internal LegacyWcfServiceModelTransformResult(
+        XElement serviceModel, 
+        IReadOnlyList<Uri> httpListeners, 
+        IReadOnlyList<Uri> httpsListeners, 
+        IReadOnlyList<Uri> netTcpListeners, 
+        IReadOnlyList<LegacyWcfServiceModelDiagnostic> diagnostics)
     {
+        Guard.NotNull(serviceModel, nameof(serviceModel));
+        Guard.NotNull(httpListeners, nameof(httpListeners));
+        Guard.NotNull(httpsListeners, nameof(httpsListeners));
+        Guard.NotNull(netTcpListeners, nameof(netTcpListeners));
+        Guard.NotNull(diagnostics, nameof(diagnostics));
+
         ServiceModel = serviceModel;
         HttpListeners = httpListeners;
         HttpsListeners = httpsListeners;
