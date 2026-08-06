@@ -263,6 +263,25 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         }
     }
 
+    [Fact]
+    public void Diagnostics_WriteTo_WritesEachDiagnostic()
+    {
+        var diagnostics = new[]
+        {
+            new LegacyWcfServiceModelDiagnostic(
+                LegacyWcfServiceModelDiagnosticSeverity.Warning,
+                "CWCF999",
+                "Test diagnostic."),
+        };
+        using var writer = new StringWriter();
+
+        diagnostics.WriteTo(writer);
+
+        Assert.Equal(
+            $"CWCF999 Warning: Test diagnostic.{Environment.NewLine}",
+            writer.ToString());
+    }
+
     private static LegacyWcfServiceModelTransformResult TransformFixture(string name)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
