@@ -43,4 +43,7 @@ public static class LegacyWcfServiceModelDiagnosticCodes
 
     /// <summary>A service host element was removed after base addresses were processed.</summary>
     public const string HostElementRemoved = "CWCF013";
+
+    /// <summary>An unsupported binding attribute was removed.</summary>
+    public const string UnsupportedBindingAttributeRemoved = "CWCF014";
 }

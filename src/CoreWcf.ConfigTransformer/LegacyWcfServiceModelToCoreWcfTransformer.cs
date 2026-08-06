@@ -82,6 +82,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         RemoveUnsupportedSections(context, state);
         RemoveUnsupportedBindings(context, state);
         RemoveUnsupportedBindingElements(context, state);
+        RemoveUnsupportedBindingAttributes(context, state);
         EnsureUniqueServiceNames(state);
         RemoveUnsupportedEndpoints(context, state);
         EnsureUniqueEndpointNames(state);
@@ -266,6 +267,36 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
                 (string)binding?.Attribute("name"),
                 unsupportedElement.Name.LocalName);
             unsupportedElement.Remove();
+        }
+    }
+
+    private static void RemoveUnsupportedBindingAttributes(TransformationContext context, TransformationState state)
+    {
+        if (!context.Options.RemoveUnsupportedConfiguration)
+        {
+            return;
+        }
+
+        var unsupportedAttributes = state.ServiceModel
+            .Element("bindings")?
+            .Elements()
+            .Elements("binding")
+            .Elements("security")
+            .Elements("transport")
+            .Attributes("proxyCredentialType")
+            .ToArray() ?? Array.Empty<XAttribute>();
+
+        foreach (var unsupportedAttribute in unsupportedAttributes)
+        {
+            var transport = unsupportedAttribute.Parent;
+            var binding = transport?.Parent?.Parent;
+            var bindingCollection = binding?.Parent;
+            state.AddUnsupportedBindingAttributeRemovedDiagnostic(
+                bindingCollection?.Name.LocalName,
+                (string)binding?.Attribute("name"),
+                transport?.Name.LocalName,
+                unsupportedAttribute.Name.LocalName);
+            unsupportedAttribute.Remove();
         }
     }
 

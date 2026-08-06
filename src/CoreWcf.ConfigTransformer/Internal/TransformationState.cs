@@ -74,6 +74,14 @@ internal sealed class TransformationState
             $"Removed unsupported element '{elementName}' from binding '{bindingName}' with configuration '{bindingConfiguration}'.");
     }
 
+    public void AddUnsupportedBindingAttributeRemovedDiagnostic(string bindingName, string bindingConfiguration, string elementName, string attributeName)
+    {
+        AddDiagnostic(
+            LegacyWcfServiceModelDiagnosticSeverity.Warning,
+            LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingAttributeRemoved,
+            $"Removed unsupported attribute '{attributeName}' from element '{elementName}' in binding '{bindingName}' with configuration '{bindingConfiguration}'.");
+    }
+
     public void AddUnsupportedEndpointRemovedDiagnostic(string contract, string binding)
     {
         AddDiagnostic(

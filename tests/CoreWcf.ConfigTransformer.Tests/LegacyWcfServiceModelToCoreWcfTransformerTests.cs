@@ -105,6 +105,66 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
     }
 
     [Fact]
+    public void Transform_RemovesUnsupportedProxyCredentialTypeFromSecurityTransport()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <bindings>
+                <basicHttpBinding>
+                  <binding name="Basic">
+                    <security mode="Transport">
+                      <transport clientCredentialType="None" proxyCredentialType="None" realm="example" />
+                    </security>
+                  </binding>
+                </basicHttpBinding>
+                <wsHttpBinding>
+                  <binding name="Ws">
+                    <security mode="Transport">
+                      <transport clientCredentialType="None" proxyCredentialType="Ntlm" realm="example" />
+                    </security>
+                  </binding>
+                </wsHttpBinding>
+                <webHttpBinding>
+                  <binding name="Web">
+                    <security mode="Transport">
+                      <transport clientCredentialType="None" proxyCredentialType="Windows" realm="example" />
+                    </security>
+                  </binding>
+                </webHttpBinding>
+              </bindings>
+            </system.serviceModel>
+            """);
+
+        var transports = result.ServiceModel
+            .Element("bindings")?
+            .Elements()
+            .Elements("binding")
+            .Elements("security")
+            .Elements("transport")
+            .ToArray() ?? Array.Empty<XElement>();
+
+        Assert.Equal(3, transports.Length);
+        Assert.All(transports, transport =>
+        {
+            Assert.Null(transport.Attribute("proxyCredentialType"));
+            Assert.NotNull(transport.Attribute("clientCredentialType"));
+            Assert.NotNull(transport.Attribute("realm"));
+        });
+        Assert.Equal(
+            3,
+            result.Diagnostics.Count(diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingAttributeRemoved));
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingAttributeRemoved &&
+                diagnostic.Message.Contains("proxyCredentialType", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("transport", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("basicHttpBinding", StringComparison.Ordinal) &&
+                diagnostic.Message.Contains("Basic", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Transform_PopulatesMissingServiceNamesFromContracts()
     {
         var result = Transform(
