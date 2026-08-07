@@ -11,18 +11,30 @@ internal sealed class BindingConfigurationIndex
         _bindings = Guard.NotNull(bindings, nameof(bindings));
     }
 
-    public static BindingConfigurationIndex Create(XElement serviceModel)
+    public static BindingConfigurationIndex Create(TransformationState state)
     {
-        Guard.NotNull(serviceModel, nameof(serviceModel));
-        
-        var bindings = serviceModel.Element("bindings")?
+        Guard.NotNull(state, nameof(state));
+
+        var bindings = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        var bindingElements = state.ServiceModel.Element("bindings")?
             .Elements()
             .SelectMany(bindingType => bindingType.Elements("binding"))
             .Where(binding => !string.IsNullOrWhiteSpace((string)binding.Attribute("name")))
-            .ToDictionary(
-                binding => $"{binding.Parent?.Name.LocalName}:{(string)binding.Attribute("name")}",
-                binding => binding,
-                StringComparer.Ordinal) ?? new Dictionary<string, XElement>(StringComparer.Ordinal);
+            .ToArray() ?? Array.Empty<XElement>();
+
+        foreach (var binding in bindingElements)
+        {
+            var bindingName = binding.Parent?.Name.LocalName;
+            var bindingConfiguration = (string)binding.Attribute("name");
+            var key = $"{bindingName}:{bindingConfiguration}";
+            if (bindings.ContainsKey(key))
+            {
+                state.AddDuplicateBindingConfigurationDiagnostic(bindingName, bindingConfiguration);
+                continue;
+            }
+
+            bindings.Add(key, binding);
+        }
 
         return new BindingConfigurationIndex(bindings);
     }

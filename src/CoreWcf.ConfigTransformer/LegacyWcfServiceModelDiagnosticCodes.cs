@@ -46,4 +46,7 @@ public static class LegacyWcfServiceModelDiagnosticCodes
 
     /// <summary>An unsupported binding attribute was removed.</summary>
     public const string UnsupportedBindingAttributeRemoved = "CWCF014";
+
+    /// <summary>A binding configuration name is duplicated within a binding collection.</summary>
+    public const string DuplicateBindingConfiguration = "CWCF015";
 }

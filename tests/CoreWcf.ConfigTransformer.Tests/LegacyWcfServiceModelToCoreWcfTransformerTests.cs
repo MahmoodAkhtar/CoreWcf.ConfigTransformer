@@ -85,9 +85,51 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         var listener = Assert.Single(result.HttpListeners);
         Assert.Equal("http://localhost:8080", listener.GetLeftPart(UriPartial.Authority));
         Assert.Equal(
-            "http://localhost:8080/relative",
+            "http://localhost:8080/Service/relative",
             (string)Assert.Single(result.ServiceModel.Element("services")?.Element("service")?.Elements("endpoint") ?? Enumerable.Empty<XElement>()).Attribute("address"));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.EndpointAddressResolved);
+    }
+
+    [Fact]
+    public void Transform_AppendsRelativeEndpointAddressesToBaseAddressPath()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <host>
+                    <baseAddresses>
+                      <add baseAddress="http://localhost:8080/Service" />
+                    </baseAddresses>
+                  </host>
+                  <endpoint address="/relative" binding="basicHttpBinding" contract="Contracts.IFoo" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        var endpoint = Assert.Single(result.ServiceModel.Element("services")?.Element("service")?.Elements("endpoint") ?? Enumerable.Empty<XElement>());
+
+        Assert.Equal("http://localhost:8080/Service/relative", (string)endpoint.Attribute("address"));
+    }
+
+    [Fact]
+    public void Transform_ClassifiesListenersFromResolvedEndpointScheme()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <endpoint address="https://localhost:8443/Service" binding="basicHttpBinding" contract="Contracts.IFoo" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        Assert.Empty(result.HttpListeners);
+        Assert.Single(result.HttpsListeners);
     }
 
     [Fact]
@@ -102,6 +144,74 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
             endpoint => string.Equals((string)endpoint.Attribute("binding"), "netMsmqBinding", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBinding);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBindingRemoved);
+    }
+
+    [Fact]
+    public void Transform_WhenUnsupportedRemovalDisabled_ReportsUnsupportedEndpointsWithoutRemovingThem()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <endpoint address="" binding="netMsmqBinding" contract="Contracts.IQueue" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """,
+            new LegacyWcfServiceModelTransformOptions
+            {
+                RemoveUnsupportedConfiguration = false
+            });
+
+        Assert.NotNull(result.ServiceModel.Element("services")?.Element("service")?.Element("endpoint"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.UnsupportedBinding);
+    }
+
+    [Fact]
+    public void Transform_WhenUnsupportedRemovalDisabled_PreservesHostElement()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <services>
+                <service name="Services.Foo">
+                  <host>
+                    <baseAddresses>
+                      <add baseAddress="http://localhost:8080/Service" />
+                    </baseAddresses>
+                  </host>
+                  <endpoint address="" binding="basicHttpBinding" contract="Contracts.IFoo" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """,
+            new LegacyWcfServiceModelTransformOptions
+            {
+                RemoveUnsupportedConfiguration = false
+            });
+
+        Assert.NotNull(result.ServiceModel.Element("services")?.Element("service")?.Element("host"));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.HostElementRemoved);
+    }
+
+    [Fact]
+    public void Transform_ReportsDuplicateBindingConfigurations()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <bindings>
+                <basicHttpBinding>
+                  <binding name="Duplicate" />
+                  <binding name="Duplicate" />
+                </basicHttpBinding>
+              </bindings>
+            </system.serviceModel>
+            """);
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == LegacyWcfServiceModelDiagnosticCodes.DuplicateBindingConfiguration);
+        Assert.True(result.HasErrors);
     }
 
     [Fact]
@@ -354,10 +464,12 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         return transformer.Transform(serviceModel);
     }
 
-    private static LegacyWcfServiceModelTransformResult Transform(string serviceModelXml)
+    private static LegacyWcfServiceModelTransformResult Transform(
+        string serviceModelXml,
+        LegacyWcfServiceModelTransformOptions options = null)
     {
         var transformer = new LegacyWcfServiceModelToCoreWcfTransformer();
-        return transformer.Transform(XElement.Parse(serviceModelXml));
+        return transformer.Transform(XElement.Parse(serviceModelXml), options);
     }
 
     private static string NormalizeXml(XElement element)

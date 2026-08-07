@@ -90,6 +90,22 @@ internal sealed class TransformationState
             $"Removed endpoint '{contract}' because it uses unsupported binding '{binding}'.");
     }
 
+    public void AddUnsupportedEndpointDiagnostic(string contract, string binding)
+    {
+        AddDiagnostic(
+            LegacyWcfServiceModelDiagnosticSeverity.Warning,
+            LegacyWcfServiceModelDiagnosticCodes.UnsupportedBinding,
+            $"Endpoint '{contract}' uses unsupported binding '{binding}'.");
+    }
+
+    public void AddDuplicateBindingConfigurationDiagnostic(string bindingName, string bindingConfiguration)
+    {
+        AddDiagnostic(
+            LegacyWcfServiceModelDiagnosticSeverity.Error,
+            LegacyWcfServiceModelDiagnosticCodes.DuplicateBindingConfiguration,
+            $"Binding collection '{bindingName}' contains duplicate binding configuration '{bindingConfiguration}'.");
+    }
+
     public void AddInvalidBaseAddressDiagnostic(string serviceName, string baseAddress)
     {
         AddDiagnostic(

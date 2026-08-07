@@ -87,7 +87,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         RemoveUnsupportedEndpoints(context, state);
         EnsureUniqueEndpointNames(state);
 
-        var bindingIndex = BindingConfigurationIndex.Create(serviceModel);
+        var bindingIndex = BindingConfigurationIndex.Create(state);
         foreach (var service in serviceModel.Element("services")?.Elements("service") ?? Enumerable.Empty<XElement>())
         {
             var baseAddresses = ReadBaseAddresses(state, service);
@@ -97,7 +97,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
             }
 
             var host = service.Element("host");
-            if (host is not null)
+            if (host is not null && context.Options.RemoveUnsupportedConfiguration)
             {
                 state.AddHostElementRemovedDiagnostic((string)service.Attribute("name"));
                 host.Remove();
@@ -302,21 +302,25 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
 
     private static void RemoveUnsupportedEndpoints(TransformationContext context, TransformationState state)
     {
-        if (!context.Options.RemoveUnsupportedConfiguration)
-        {
-            return;
-        }
-
         var endpoints = state.ServiceModel.Element("services")?.Elements("service").Elements("endpoint").ToArray() ?? Array.Empty<XElement>();
         foreach (var endpoint in endpoints)
         {
             var binding = ((string)endpoint.Attribute("binding"))?.Trim();
             if (!SupportedBindings.Contains(binding))
             {
-                state.AddUnsupportedEndpointRemovedDiagnostic(
-                    (string)endpoint.Attribute("contract"),
-                    binding);
-                endpoint.Remove();
+                if (context.Options.RemoveUnsupportedConfiguration)
+                {
+                    state.AddUnsupportedEndpointRemovedDiagnostic(
+                        (string)endpoint.Attribute("contract"),
+                        binding);
+                    endpoint.Remove();
+                }
+                else
+                {
+                    state.AddUnsupportedEndpointDiagnostic(
+                        (string)endpoint.Attribute("contract"),
+                        binding);
+                }
             }
         }
     }
@@ -366,7 +370,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         if (endpointUri is not null)
         {
             endpoint.SetAttributeValue("address", endpointUri.ToString());
-            state.AddListener(transport, endpointUri);
+            AddListener(state, endpointUri);
 
             if (!Uri.TryCreate(endpointAddress, UriKind.Absolute, out _))
             {
@@ -376,6 +380,22 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
                     endpointAddress,
                     endpointUri);
             }
+        }
+    }
+
+    private static void AddListener(TransformationState state, Uri endpointUri)
+    {
+        switch (endpointUri.Scheme.ToLowerInvariant())
+        {
+            case "http":
+                state.AddListener(EndpointTransport.Http, endpointUri);
+                break;
+            case "https":
+                state.AddListener(EndpointTransport.Https, endpointUri);
+                break;
+            case "net.tcp":
+                state.AddListener(EndpointTransport.NetTcp, endpointUri);
+                break;
         }
     }
 
@@ -426,7 +446,13 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
             return baseAddress;
         }
 
-        return new Uri(baseAddress, endpointAddress);
+        return new Uri(EnsureTrailingSlash(baseAddress), endpointAddress.TrimStart('/'));
+    }
+
+    private static Uri EnsureTrailingSlash(Uri uri)
+    {
+        var value = uri.ToString();
+        return value.EndsWith("/", StringComparison.Ordinal) ? uri : new Uri($"{value}/");
     }
 
     private static LegacyWcfServiceModelTransformResult Complete(TransformationContext context, TransformationState state)
