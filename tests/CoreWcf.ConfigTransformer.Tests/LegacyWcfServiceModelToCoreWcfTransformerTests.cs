@@ -40,6 +40,37 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
     }
 
     [Fact]
+    public void Transform_DerivesHttpsFromDefaultTransportSecurityBinding()
+    {
+        var result = Transform(
+            """
+            <system.serviceModel>
+              <bindings>
+                <basicHttpBinding>
+                  <binding>
+                    <security mode="Transport" />
+                  </binding>
+                </basicHttpBinding>
+              </bindings>
+              <services>
+                <service name="Services.Foo">
+                  <host>
+                    <baseAddresses>
+                      <add baseAddress="https://localhost:8443/Service" />
+                    </baseAddresses>
+                  </host>
+                  <endpoint address="" binding="basicHttpBinding" contract="Contracts.IFoo" />
+                </service>
+              </services>
+            </system.serviceModel>
+            """);
+
+        Assert.Single(result.HttpsListeners);
+        Assert.Empty(result.HttpListeners);
+        Assert.False(result.HasErrors);
+    }
+
+    [Fact]
     public void Transform_ReportsMissingBaseAddress()
     {
         var result = TransformFixture("MissingBaseAddress.config");

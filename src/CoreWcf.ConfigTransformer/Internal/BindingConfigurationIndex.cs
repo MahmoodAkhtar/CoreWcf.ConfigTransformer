@@ -19,13 +19,12 @@ internal sealed class BindingConfigurationIndex
         var bindingElements = state.ServiceModel.Element("bindings")?
             .Elements()
             .SelectMany(bindingType => bindingType.Elements("binding"))
-            .Where(binding => !string.IsNullOrWhiteSpace((string)binding.Attribute("name")))
             .ToArray() ?? Array.Empty<XElement>();
 
         foreach (var binding in bindingElements)
         {
             var bindingName = binding.Parent?.Name.LocalName;
-            var bindingConfiguration = (string)binding.Attribute("name");
+            var bindingConfiguration = ((string)binding.Attribute("name"))?.Trim();
             var key = new BindingConfigurationKey(bindingName, bindingConfiguration);
             if (bindings.ContainsKey(key))
             {
@@ -41,12 +40,12 @@ internal sealed class BindingConfigurationIndex
 
     public XElement Find(string binding, string bindingConfiguration)
     {
-        if (string.IsNullOrWhiteSpace(binding) || string.IsNullOrWhiteSpace(bindingConfiguration))
+        if (string.IsNullOrWhiteSpace(binding))
         {
             return null;
         }
 
-        _bindings.TryGetValue(new BindingConfigurationKey(binding, bindingConfiguration), out var element);
+        _bindings.TryGetValue(new BindingConfigurationKey(binding, bindingConfiguration?.Trim()), out var element);
         return element;
     }
 
