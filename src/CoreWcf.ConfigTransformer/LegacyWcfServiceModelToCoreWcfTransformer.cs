@@ -28,7 +28,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         var state = new TransformationState(new XElement(serviceModel));
 
         TransformServiceModel(context, state);
-        return Complete(context, state);
+        return CreateTransformResult(context, state);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
         }
     }
 
-    private static LegacyWcfServiceModelTransformResult Complete(TransformationContext context, TransformationState state)
+    private static LegacyWcfServiceModelTransformResult CreateTransformResult(TransformationContext context, TransformationState state)
     {
         var diagnostics = state.Diagnostics;
         if (context.Options.ThrowOnError && diagnostics.Any(diagnostic => diagnostic.Severity == LegacyWcfServiceModelDiagnosticSeverity.Error))
