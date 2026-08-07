@@ -42,7 +42,7 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
     public LegacyWcfServiceModelTransformResult Transform(
         string legacyConfigurationPath,
         string generatedConfigurationPath,
-        LegacyWcfServiceModelTransformOptions options)
+        LegacyWcfServiceModelTransformOptions options = null)
     {
         Guard.NotNullOrWhiteSpace(legacyConfigurationPath, nameof(legacyConfigurationPath));
         Guard.NotNullOrWhiteSpace(generatedConfigurationPath, nameof(generatedConfigurationPath));

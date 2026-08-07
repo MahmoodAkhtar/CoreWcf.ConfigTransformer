@@ -22,7 +22,7 @@ internal sealed class BindingConfigurationIndex
             .ToDictionary(
                 binding => $"{binding.Parent?.Name.LocalName}:{(string)binding.Attribute("name")}",
                 binding => binding,
-                StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+                StringComparer.Ordinal) ?? new Dictionary<string, XElement>(StringComparer.Ordinal);
 
         return new BindingConfigurationIndex(bindings);
     }
