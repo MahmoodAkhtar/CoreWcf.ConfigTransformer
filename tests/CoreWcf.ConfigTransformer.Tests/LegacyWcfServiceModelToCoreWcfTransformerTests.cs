@@ -431,10 +431,35 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
     }
 
     [Fact]
-    public void Transform_FromFilePaths_WritesTransformedServiceModel()
+    public void Transform_FromFilePaths_ReplacesServiceModelAndPreservesConfigurationByDefault()
     {
-        var legacyConfigurationPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "BasicHttpOnly.config");
+        var legacyConfigurationPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.config");
         var generatedConfigurationPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.config");
+        File.WriteAllText(
+            legacyConfigurationPath,
+            """
+            <?xml version="1.0" encoding="utf-8" ?>
+            <configuration>
+              <appSettings>
+                <add key="Environment" value="Test" />
+              </appSettings>
+              <system.serviceModel>
+                <services>
+                  <service name="Sample.Service">
+                    <host>
+                      <baseAddresses>
+                        <add baseAddress="http://localhost:8080/Service" />
+                      </baseAddresses>
+                    </host>
+                    <endpoint address="" binding="basicHttpBinding" contract="Sample.IService" />
+                  </service>
+                </services>
+              </system.serviceModel>
+              <connectionStrings>
+                <add name="Default" connectionString="Data Source=.;Initial Catalog=Sample;" />
+              </connectionStrings>
+            </configuration>
+            """);
 
         try
         {
@@ -449,6 +474,8 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
 
             Assert.True(File.Exists(generatedConfigurationPath));
             Assert.Equal("configuration", generatedConfiguration.Root?.Name.LocalName);
+            Assert.NotNull(generatedConfiguration.Root?.Element("appSettings"));
+            Assert.NotNull(generatedConfiguration.Root?.Element("connectionStrings"));
             Assert.NotNull(generatedServiceModel);
             Assert.Equal(
                 NormalizeXml(result.ServiceModel),
@@ -457,6 +484,75 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformerTests
         }
         finally
         {
+            if (File.Exists(legacyConfigurationPath))
+            {
+                File.Delete(legacyConfigurationPath);
+            }
+
+            if (File.Exists(generatedConfigurationPath))
+            {
+                File.Delete(generatedConfigurationPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void Transform_FromFilePaths_WhenServiceModelOnly_WritesOnlyTransformedServiceModel()
+    {
+        var legacyConfigurationPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.config");
+        var generatedConfigurationPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.config");
+        File.WriteAllText(
+            legacyConfigurationPath,
+            """
+            <?xml version="1.0" encoding="utf-8" ?>
+            <configuration>
+              <appSettings>
+                <add key="Environment" value="Test" />
+              </appSettings>
+              <system.serviceModel>
+                <services>
+                  <service name="Sample.Service">
+                    <host>
+                      <baseAddresses>
+                        <add baseAddress="http://localhost:8080/Service" />
+                      </baseAddresses>
+                    </host>
+                    <endpoint address="" binding="basicHttpBinding" contract="Sample.IService" />
+                  </service>
+                </services>
+              </system.serviceModel>
+            </configuration>
+            """);
+
+        try
+        {
+            var transformer = new LegacyWcfServiceModelToCoreWcfTransformer();
+            var result = transformer.Transform(
+                legacyConfigurationPath,
+                generatedConfigurationPath,
+                new LegacyWcfServiceModelTransformOptions
+                {
+                    GeneratedConfigurationMode = GeneratedConfigurationMode.ServiceModelOnly
+                });
+
+            var generatedConfiguration = XDocument.Load(generatedConfigurationPath);
+            var generatedServiceModel = generatedConfiguration.Root?.Element("system.serviceModel");
+
+            Assert.True(File.Exists(generatedConfigurationPath));
+            Assert.Equal("configuration", generatedConfiguration.Root?.Name.LocalName);
+            Assert.Null(generatedConfiguration.Root?.Element("appSettings"));
+            Assert.NotNull(generatedServiceModel);
+            Assert.Equal(
+                NormalizeXml(result.ServiceModel),
+                NormalizeXml(generatedServiceModel));
+        }
+        finally
+        {
+            if (File.Exists(legacyConfigurationPath))
+            {
+                File.Delete(legacyConfigurationPath);
+            }
+
             if (File.Exists(generatedConfigurationPath))
             {
                 File.Delete(generatedConfigurationPath);

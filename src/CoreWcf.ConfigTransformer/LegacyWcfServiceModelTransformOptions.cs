@@ -14,4 +14,9 @@ public sealed class LegacyWcfServiceModelTransformOptions
     /// Gets or sets a value indicating whether diagnostics with error severity throw an exception.
     /// </summary>
     public bool ThrowOnError { get; set; }
+
+    /// <summary>
+    /// Gets or sets how the generated configuration file should be written.
+    /// </summary>
+    public GeneratedConfigurationMode GeneratedConfigurationMode { get; set; } = GeneratedConfigurationMode.ReplaceServiceModelInConfiguration;
 }

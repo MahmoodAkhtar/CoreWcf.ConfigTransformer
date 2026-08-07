@@ -60,14 +60,38 @@ public sealed class LegacyWcfServiceModelToCoreWcfTransformer
             throw new LegacyWcfServiceModelTransformException("The legacy configuration does not contain a system.serviceModel section.");
         }
 
-        var result = Transform(serviceModel, options);
-        var generatedConfiguration = new XDocument(
-            new XDeclaration("1.0", "utf-8", null),
-            new XElement("configuration", result.ServiceModel));
+        var transformOptions = options ?? new LegacyWcfServiceModelTransformOptions();
+        var result = Transform(serviceModel, transformOptions);
+        var generatedConfiguration = CreateGeneratedConfiguration(legacyConfiguration, serviceModel, result, transformOptions);
 
         generatedConfiguration.Save(generatedConfigurationPath);
 
         return result;
+    }
+
+    private static XDocument CreateGeneratedConfiguration(
+        XDocument legacyConfiguration,
+        XElement legacyServiceModel,
+        LegacyWcfServiceModelTransformResult result,
+        LegacyWcfServiceModelTransformOptions options)
+    {
+        if (options.GeneratedConfigurationMode == GeneratedConfigurationMode.ServiceModelOnly)
+        {
+            return new XDocument(
+                new XDeclaration("1.0", "utf-8", null),
+                new XElement("configuration", result.ServiceModel));
+        }
+
+        var generatedConfiguration = new XDocument(legacyConfiguration);
+        var generatedServiceModel = generatedConfiguration.Root?.Element(legacyServiceModel.Name);
+        if (generatedServiceModel is null)
+        {
+            throw new LegacyWcfServiceModelTransformException("The generated configuration does not contain a system.serviceModel section.");
+        }
+
+        generatedServiceModel.ReplaceWith(result.ServiceModel);
+
+        return generatedConfiguration;
     }
 
     private static void TransformServiceModel(TransformationContext context, TransformationState state)
